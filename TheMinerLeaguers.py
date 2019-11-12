@@ -8,6 +8,7 @@
 import numpy as np
 import pandas as pd
 import pandas_profiling
+from datetime import datetime
 from scipy.stats import zscore
 from ast import literal_eval
 
@@ -22,7 +23,7 @@ my_data = pd.read_csv('C:\\Users\\Joe\\Desktop\\tmdb_5000_movies.csv')
 # In[ ]:
 
 
-# Generate new columns for cleaned attribute values to track provenance.
+# Generate new columns for cleaned attribute values; old values are retained for provenance.
 my_data['genres_clean'] = 0
 my_data['keywords_clean'] = 0
 my_data['production_companies_clean'] = 0
@@ -71,7 +72,7 @@ for i in range(len(my_data)):
 # In[ ]:
 
 
-# Mark rows that contain value of 0 for budget.
+# Mark to delete rows that contain value of 0 for budget.
 for i in range(len(my_data)):
     if my_data.at[i, "budget"] == 0:
         my_data.at[i, "delete"] = 'Delete'
@@ -80,10 +81,17 @@ for i in range(len(my_data)):
 # In[ ]:
 
 
-# Mark rows that contain value of 0 for revenue.
+# Mark to delete rows that contain value of 0 for revenue.
 for i in range(len(my_data)):
     if my_data.at[i, "revenue"] == 0:
         my_data.at[i, "delete"] = 'Delete'
+
+
+# In[ ]:
+
+
+# Remove homepage, language, overview attributes.
+my_data.drop(columns=['original_language', 'homepage', 'overview'])
 
 
 # In[ ]:
@@ -101,13 +109,24 @@ my_data.reset_index(drop=True, inplace=True)
 
 #Calculate return on investment a generate a new column.
 for i in range(len(my_data)):
-    my_data.at[i, "roi"] = (my_data.at[i, "revenue"] - my_data.at[i, "budget"]) /  my_data.at[i, "budget"]
+    my_data.at[i, "roi"] = round((my_data.at[i, "revenue"] - my_data.at[i, "budget"]) /  my_data.at[i, "budget"], 2)
 
 
 # In[ ]:
 
 
-my_data
+#Generate separate a day of the year and year column.
+for i in range(len(my_data)):
+    d = datetime.strptime(my_data.at[i, "release_date"], '%Y-%m-%d')
+    my_data.at[i, "day_of_year"] = d.timetuple().tm_yday
+    my_data.at[i, "year"] = d.year
+
+
+# In[ ]:
+
+
+#Create dummy variables; nominal/categorical variables must be converted for regression analysis.
+my_data["genres_clean"].str.join('|').str.get_dummies()
 
 
 # In[ ]:
@@ -124,12 +143,8 @@ my_data['budget_zscore'] = my_data[['budget']].apply(zscore)
 # In[ ]:
 
 
-#my_data.to_csv('C:\\Users\\Joe\\Desktop\\my_data_scores.csv')
-
-
-# In[ ]:
-
-
+""""
+#Normalize data test
 from sklearn import preprocessing
 # Create x, where x the 'scores' column's values as floats
 x = my_data[['budget_zscore']].values.astype(float)
@@ -146,4 +161,20 @@ y_scaled = min_max_scaler.fit_transform(y)
 my_data['budget_normalized'] = pd.DataFrame(x_scaled)
 my_data['revenue_normalized'] = pd.DataFrame(y_scaled)
 my_data.plot.scatter(x='budget_normalized', y='revenue_normalized', c='DarkBlue')
+
+"""
+
+
+# In[ ]:
+
+
+# Show first 25 rows of dataframe
+my_data.head(25)
+
+
+# In[ ]:
+
+
+#Save dataframe as CSV somewhere
+#my_data.to_csv('C:\\Users\\Joe\\Desktop\\my_data_scores.csv')
 
